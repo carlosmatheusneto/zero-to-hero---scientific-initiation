@@ -1,0 +1,26 @@
+lidar:
+  lidar_topic: /scan
+  frame_id: 
+
+camera:
+  camera_topic: 
+  image_size:
+    width: 1920
+    length: 1080
+  frame_id: zedm
+
+  chessboard:
+    rows: 
+    columns: 
+    square_size_m: 
+
+general:
+  config_folder: /ros2_ws/src/lidar_zed/config
+  data_folder: /ros2_ws/src/lidar_zed/data
+  correspondence_file: correspondence.txt
+  slop: 0.1
+  max_file_saved: 20
+  camera_intrinsic_calibration: camera_intrinsic_calibration.yaml
+  camera_extrinsic_calibration: camera_extrinsic_calibration.yaml
+
+  

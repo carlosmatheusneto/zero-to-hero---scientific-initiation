@@ -1,0 +1,60 @@
+FROM nvcr.io/nvidia/l4t-ml:r36.2.0-py3
+
+ENV ROS_DISTRO=humble
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
+
+RUN apt-get update && apt-get upgrade -y && \
+  apt-get install -y --no-install-recommends \
+  locales \
+  curl \
+  vim \
+  git \
+  zstd \
+  temux \
+  gedit \
+  lsb-release \
+  wget \
+  gnupg2 \
+  apt-utils \
+  rm -rf /var/lib/apt/list/*
+
+# ROS2-humble
+
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+    -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" \
+    | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-desktop \
+    ros-dev-tools \
+    ros-${ROS_DISTRO}-pcl-ros \
+    ros-${ROS_DISTRO}-pcl-conversions \
+    ros-${ROS_DISTRO}-cv-bridge \
+    rm -rf /var/lib/apt/lists/*
+
+RUN rosdep init && rosdep update
+
+# ZED SDK
+
+COPY ZED_SDK_Ubuntu22_cuda12.8_tensorrt10.9_v5.0.5.zstd.run /root 
+RUN chmod +x /root/ZED_SDK_Ubuntu22_cuda12.8_tensorrt10.9_v5.0.5.zstd.run && ./root/ZED_SDK_Ubuntu22_cuda12.8_tensorrt10.9_v5.0.5.zstd.run -- silent
+
+# Workspace do ROS
+
+ARG CACHE_BREAKER=0
+RUN mkdir -p /root/ros2_ws/src
+
+RUN cd /root/ros2_ws/src && \
+    git clone https://github.com/stereolabs/zed-ros2-wrapper.git && \
+    git clone --branch humble-devel --single-branch https://github.com/f1tenth/f1tenth_system.git
+
+RUN cd /root/ros2_ws && \
+    apt-get update && \
+    rosdep install --from-paths src --ignore-src -r -y && \
+    . /opt/ros/$ROS_DISTRO/setup.sh && \
+    colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release
+
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
